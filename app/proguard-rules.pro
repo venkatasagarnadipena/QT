@@ -12,5 +12,15 @@
     <fields>;
 }
 
-# Optimize Compose
+# Optimize Bytecode and DEX Compilation
 -dontwarn androidx.compose.material.icons.**
+-repackageclasses ''
+-allowaccessmodification
+-dontusemixedcaseclassnames
+
+# Strip unused Kotlin Null Check Assertions
+-assumenosideeffects class kotlin.jvm.internal.Intrinsics {
+    public static void checkNotNull(...);
+    public static void checkNotNullParameter(...);
+    public static void checkExpressionValueIsNotNull(...);
+}

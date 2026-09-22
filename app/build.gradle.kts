@@ -47,6 +47,10 @@ android {
 
     kotlinOptions {
         jvmTarget = "11"
+        freeCompilerArgs += listOf(
+            "-Xno-param-assertions",
+            "-Xno-call-assertions"
+        )
     }
 
     buildFeatures {
@@ -57,6 +61,8 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "DebugProbesKt.bin"
+            excludes += "/META-INF/*.version"
+            excludes += "/META-INF/*.kotlin_module"
         }
     }
 
