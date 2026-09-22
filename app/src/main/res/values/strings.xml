@@ -1,0 +1,334 @@
+<resources>
+    <string name="app_name">QuickTile Settings</string>
+
+    <!-- Tile Labels -->
+    <string name="tile_label_private_dns">Private DNS</string>
+    <string name="tile_label_usb_debugging">USB Debugging</string>
+    <string name="tile_label_wireless_debugging">Wireless Debugging</string>
+    <string name="tile_label_monochrome">Grayscale</string>
+    <string name="dns_state_reverted_to">DNS reverted to %1$s</string>
+    <string name="usb_state_reverted_to">USB Debug reverted to %1$s</string>
+    <string name="toast_developer_options_disabled_revert_cancelled">Dev options off. USB revert cancelled.</string>
+    <string name="tile_subtitle_reverting_in_seconds">Reverting to %1$s in %2$ds…</string>
+    <string name="tile_subtitle_switching">Switching…</string>
+    <string name="subtitle_dev_options_required">Dev options required</string>
+    <string name="active_dns_banner_title">Currently Active DNS</string>
+
+    <!-- DNS States -->
+    <string name="dns_state_off">DNS Off</string>
+    <string name="dns_state_auto">DNS Auto</string>
+    <string name="dns_state_on_with_host">DNS On (Hostname)</string>
+    <string name="dns_state_unknown">DNS Status Unknown</string>
+
+    <!-- USB & Wireless Debugging States -->
+    <string name="usb_state_on">USB Debug On</string>
+    <string name="usb_state_off">USB Debug Off</string>
+    <string name="wireless_state_on">Wireless Debug On</string>
+    <string name="wireless_state_off">Wireless Debug Off</string>
+    <string name="usb_dev_options_off">Dev Options Off</string>
+
+    <!-- UI Settings Screen -->
+    <string name="setting_title_private_dns">Private DNS Tile</string>
+    <string name="setting_title_usb_debugging">USB Debugging Tile</string>
+    <string name="setting_desc_tile_cycles">Select states for the tile cycle:</string>
+    <string name="app_settings_title">Settings</string>
+    <string name="tab_title_dns">Private DNS</string>
+    <string name="tab_title_usb">USB Debugging</string>
+
+    <!-- Toasts & Warnings -->
+    <string name="toast_permission_not_granted_adb">Permission missing. Please grant via ADB or Root.</string>
+    <string name="toast_developer_options_disabled">Developer options are disabled.</string>
+    <string name="toast_error_saving_settings">Error saving settings.</string>
+    <string name="toast_no_states_enabled_dns">No DNS states enabled for cycling.</string>
+    <string name="toast_no_states_enabled_usb">No USB states enabled for cycling.</string>
+    <string name="toast_hostname_required">Hostname required for DNS On.</string>
+    <string name="warning_hostname_blank">Hostname cannot be empty if "DNS On" is enabled.</string>
+    <string name="warning_at_least_one_usb_option">At least one USB status must be enabled.</string>
+    <string name="toast_command_copied">Command copied!</string>
+
+    <!-- Permission Grant Dialog -->
+    <string name="permission_grant_dialog_title">Permission Required</string>
+    <string name="permission_grant_dialog_intro">To change system settings like Private DNS and USB Debugging, this app needs the WRITE_SECURE_SETTINGS permission. Choose a method below to grant it:</string>
+    <string name="help_dialog_after_grant">After granting permission, restart the app or re-open the Quick Settings panel for tiles to function.</string>
+    <string name="app_menu_desc">Open app menu</string>
+    <string name="navigate_back_desc">Back</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_permission_help">Permission Setup</string>
+    <string name="menu_about">About</string>
+    <string name="button_open_developer_options">Open Developer Options</string>
+    <string name="dialog_close">Close</string>
+
+    <!-- ADB Method -->
+    <string name="permission_method_adb_title">Method 1: ADB (Computer)</string>
+    <string name="permission_method_adb_desc">Connect your phone to a computer with ADB set up and run the grant command.</string>
+    <string name="button_show_adb_instructions">Show ADB Instructions</string>
+    <string name="adb_instructions_title">ADB Instructions</string>
+    <string name="adb_instructions_intro">Connect your device to a computer with ADB set up. Ensure Developer Options and USB Debugging are enabled on your device.</string>
+    <string name="help_dialog_method_1_title">Option A: Grant to existing installation</string>
+    <string name="help_dialog_how_to_grant_via_adb">Run the following command in your terminal/command prompt:</string>
+    <string name="button_copy_grant_command">Copy Grant Command</string>
+    <string name="help_dialog_method_2_title">Option B: Install with permission</string>
+    <string name="help_dialog_how_to_install_via_adb">Uninstall the current version first, then use this command (replace path/to/your/app.apk with the actual APK path):</string>
+    <string name="button_copy_install_command">Copy Install Command</string>
+    <string name="help_dialog_apk_path_note">(Note: You need the APK file for the install command.)</string>
+    <string name="adb_command_install_g">adb install -g -r path/to/your/app.apk</string>
+    <string name="github_repo_url" translatable="false">https://github.com/RBN-Apps/Quick-Tile-Settings</string>
+
+    <!-- Root Method -->
+    <string name="permission_method_root_title">Method 2: Root (Direct Grant)</string>
+    <string name="root_ready_to_grant_desc">Your device is rooted. You can attempt to grant WRITE_SECURE_SETTINGS directly using root privileges.</string>
+    <string name="device_not_rooted_detailed">Your device does not appear to be rooted or root access was not granted. This method is unavailable.</string>
+    <string name="button_grant_with_root">Grant using Root</string>
+    <string name="device_not_rooted">Device is not rooted.</string>
+
+    <!-- Generic Permission Grant Results -->
+    <string name="permission_granted_root_success">Permission granted successfully via Root!</string>
+    <string name="permission_granted_root_check_failed">Root command executed, but permission check failed. Please restart the app.</string>
+    <string name="permission_granted_root_fail">Failed to grant permission via Root. Exit code: %1$d</string>
+    <string name="permission_granted_root_error">Error granting permission via Root: %1$s</string>
+
+    <!-- Permission Warning Card -->
+    <string name="warning_permission_missing_title">Permission Missing!</string>
+    <string name="warning_permission_missing_desc">This app requires WRITE_SECURE_SETTINGS permission to function. Please grant it using ADB or Root.</string>
+    <string name="button_show_permission_help">Show Grant Options</string>
+    <string name="warning_developer_options_disabled_config">Developer options are disabled. USB Debugging cannot be configured.</string>
+
+    <string name="setting_require_unlock">Require device unlock to toggle</string>
+    <string name="setting_require_unlock_desc">When enabled, the tile will prompt you to unlock the device before applying any changes.</string>
+
+    <string name="setting_also_hide_dev_options">Also toggle Developer Options</string>
+    <string name="setting_also_hide_dev_options_desc">When enabled, toggling USB Debugging will also enable/disable Developer Options. This allows the tile to work even when Developer Options are currently off.</string>
+    <string name="setting_also_disable_wireless_debugging">Also toggle Wireless Debugging</string>
+    <string name="setting_also_disable_wireless_debugging_desc">When enabled, Wireless Debugging will also be toggled alongside USB Debugging.</string>
+    <string name="usb_set_active_mode">Set %1$s as active USB debugging state</string>
+    <string name="usb_active">Active USB debugging state</string>
+
+    <string name="setting_enable_auto_revert">Enable auto-revert after a delay</string>
+    <string name="setting_auto_revert_delay">Revert delay (seconds):</string>
+    <string name="toast_reverting_dns_to">Reverting DNS to \n\"%1$s\" in %2$d sec…</string>
+    <string name="toast_reverting_usb_to">Reverting USB Debug to %1$s in %2$d sec…</string>
+    <string name="toast_revert_cancelled">Auto-revert cancelled.</string>
+    <string name="on_state">On</string>
+    <string name="off_state">Off</string>
+    <string name="auto_state">Auto</string>
+
+    <string name="dns_select_hostnames_for_cycle">Select hostnames to include in tile cycle:</string>
+    <string name="dns_sort_content_description">Choose DNS list sorting</string>
+    <string name="dns_sort_manual">Manual</string>
+    <string name="dns_sort_alphabetical">Alphabetical (A–Z)</string>
+    <string name="dns_manual_reorder_hint">Hold and drag the handle to change the DNS order.</string>
+    <string name="dns_move_up">Move up</string>
+    <string name="dns_move_down">Move down</string>
+    <string name="dns_reorder_entry">Reorder %1$s (%2$s)</string>
+    <string name="dns_entry_actions">Actions for %1$s (%2$s)</string>
+    <string name="dns_set_active_mode">Set %1$s as active DNS</string>
+    <string name="dns_set_active">Set as active DNS</string>
+    <string name="dns_active">Active DNS</string>
+    <string name="dns_custom_entry_badge">Custom</string>
+    <string name="dns_add_custom_hostname_button">Add Custom Hostname</string>
+    <string name="dns_edit_hostname_title">Edit Hostname</string>
+    <string name="dns_add_hostname_title">Add Hostname</string>
+    <string name="dns_hostname_name_label">Display Name</string>
+    <string name="dns_hostname_value_label">Hostname (e.g., dns.example.com)</string>
+    <string name="dialog_save">Save</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="button_edit">Edit</string>
+    <string name="button_delete">Delete</string>
+    <string name="error_hostname_name_empty">Display name cannot be empty.</string>
+    <string name="error_hostname_value_empty">Hostname cannot be empty.</string>
+    <string name="error_hostname_value_invalid">Enter a valid DNS hostname.</string>
+    <string name="confirm_delete_hostname_title">Delete Hostname?</string>
+    <string name="confirm_delete_hostname_message">Are you sure you want to delete \'%1$s\'?</string>
+
+    <!-- DNS Info Dialogs -->
+    <string name="dns_info_dialog_title">About %1$s</string>
+    <string name="button_info_dns">Info about %1$s</string>
+    <string name="dns_info_cloudflare">Cloudflare DNS (one.one.one.one or 1.1.1.1) is known for its high speed and focus on privacy. It does not filter content and promises not to log user data. Ideal for users prioritizing privacy and performance.</string>
+    <string name="dns_info_adguard">AdGuard DNS (dns.adguard.com) blocks ads, trackers, and known malicious domains directly at the DNS level. This provides a cleaner and safer browsing experience. Good for users who want to reduce ads and protect their privacy.</string>
+    <string name="dns_info_quad9">Quad9 (dns.quad9.net) focuses on security by blocking domains associated with malware, phishing, and botnets. This enhances protection against online threats. Suitable for users for whom internet security is a top priority.</string>
+    <string name="recommended_for_you">(Recommended for you)</string>
+
+    <!-- About Dialog -->
+    <string name="about_version">Version %1$s</string>
+    <string name="about_description">QuickTile Settings provides convenient Quick Settings tiles for toggling settings directly from the notification panel.</string>
+    <string name="about_features_title">Features</string>
+    <string name="about_feature_private_dns">• Private DNS tile with custom hostname support</string>
+    <string name="about_feature_usb_debugging">• USB Debugging tile for development</string>
+    <string name="about_feature_auto_revert">• Auto-revert functionality for temporary changes</string>
+    <string name="about_feature_custom_dns">• Built-in popular DNS providers (Cloudflare, AdGuard, Quad9)</string>
+    <string name="about_developer_title">Developer</string>
+    <string name="about_developer_info">Developed by RBN-Apps</string>
+    <string name="about_button_github" translatable="false">GitHub</string>
+    <string name="about_button_permission_help">Permission Setup Help</string>
+
+    <!-- App Settings -->
+    <string name="settings_backup_title">Backup &amp; Restore</string>
+    <string name="settings_backup_description">Export all tile settings, DNS entries, automation preferences, and shortcut configuration to a JSON file. Restore replaces the current app settings with the selected backup.</string>
+    <string name="backup_export_button">Export backup</string>
+    <string name="backup_restore_button">Restore backup</string>
+    <string name="backup_restore_confirm_title">Restore backup?</string>
+    <string name="backup_restore_confirm_message">Current app settings will be replaced with the selected backup file.</string>
+    <string name="backup_restore_confirm_button">Restore</string>
+    <string name="backup_export_success">Backup exported.</string>
+    <string name="backup_export_error">Backup export failed: %1$s</string>
+    <string name="backup_restore_success">Backup restored.</string>
+    <string name="backup_restore_error">Backup restore failed: %1$s</string>
+
+    <!-- VPN Detection Settings -->
+    <string name="setting_vpn_detection_enabled">Automatically disable DNS on VPN connections</string>
+    <string name="setting_vpn_detection_mode">VPN Detection Mode:</string>
+    <string name="vpn_detection_tile_only_title">Tile-Only Detection</string>
+    <string name="vpn_detection_tile_only_description">Checks for VPN connections when opening the Quick Settings. More battery-friendly, but detects VPN connections only when Quick Settings are opened. If you usually enable or disable VPN through Quick Settings anyway, this option is sufficient.</string>
+    <string name="vpn_detection_background_title">Background Service Detection</string>
+    <string name="vpn_detection_background_description">Continuously monitors VPN status. Provides an instant response, but uses more battery and shows a persistent notification to stay active.</string>
+
+    <!-- VPN Monitoring Service -->
+    <string name="vpn_monitoring_channel_name">VPN Monitoring</string>
+    <string name="vpn_monitoring_channel_description">Monitors VPN connections to automatically adjust Private DNS settings</string>
+    <string name="vpn_monitoring_notification_title">VPN Monitoring Active</string>
+    <string name="vpn_monitoring_status_connected">VPN connected - Private DNS set to Off</string>
+    <string name="vpn_monitoring_status_disconnected">VPN disconnected - Private DNS restored</string>
+
+    <!-- Notification Permission Dialog -->
+    <string name="notification_permission_dialog_settings_description">Open settings</string>
+    <string name="notification_permission_background_title">Allow notifications for background detection?</string>
+    <string name="notification_permission_background_message">Background detection already works without notification permission. Allow it if you want the ongoing monitoring status to remain visible in the notification drawer; otherwise Android shows the service only in its active apps area.</string>
+    <string name="notification_permission_import_title">Allow notifications for background detection?</string>
+    <string name="notification_permission_import_message">The imported backup enables background detection for VPN or network changes. It already works without notification permission. Allow notifications only if you want the ongoing monitoring status to remain visible in the notification drawer.</string>
+    <string name="notification_permission_fallback_title">Notification access not granted</string>
+    <string name="notification_permission_fallback_message">Background detection will continue. Its status will not appear in the notification drawer, but Android still shows the service in its active apps area. You can retry or continue without notifications.</string>
+    <string name="notification_permission_grant_button">Grant permission</string>
+    <string name="notification_permission_continue_button">Continue without notifications</string>
+    <string name="notification_permission_settings_title">Notification access is disabled</string>
+    <string name="notification_permission_settings_message">Background detection will continue without a notification-drawer status. To show it there, open this app\'s notification settings and allow notifications.</string>
+    <string name="notification_permission_settings_button">Open settings</string>
+
+    <!-- Network Type Detection Settings -->
+    <string name="setting_network_type_detection_enabled">Auto-switch DNS based on network type</string>
+    <string name="setting_network_type_detection_description">Automatically change Private DNS when switching between Wi-Fi and mobile data. Enable this to also configure rules for individual Wi-Fi networks or access points.</string>
+    <string name="setting_network_type_detection_mode">Network Detection Mode:</string>
+    <string name="network_type_detection_tile_only_title">Tile-Only Detection</string>
+    <string name="network_type_detection_tile_only_description">Checks network type when opening Quick Settings. Battery-friendly, but only detects network changes when Quick Settings are opened.</string>
+    <string name="network_type_detection_background_title">Background Service Detection</string>
+    <string name="network_type_detection_background_description">Continuously monitors network type changes. Instant response when switching networks, but uses more battery and shows a persistent notification.</string>
+
+    <string name="setting_dns_state_on_wifi">DNS on WiFi:</string>
+    <string name="setting_dns_state_on_wifi_other_networks">Wi-Fi DNS for all other networks:</string>
+    <string name="setting_dns_state_on_mobile">DNS on Mobile Data:</string>
+    <string name="setting_select_hostname">Select hostname…</string>
+
+    <!-- WiFi Network Rules -->
+    <string name="setting_wifi_network_rules_title">Wi-Fi network rules</string>
+    <string name="setting_wifi_network_rules_description">Override the default Wi-Fi DNS setting for specific networks or access points (SSID/BSSID). Applying changes requires the app\'s Private DNS control permission and background detection. Notification access is optional and only makes the monitoring status visible in the notification drawer.</string>
+    <string name="wifi_rules_enabled">Use per-network rules</string>
+    <string name="wifi_rules_enabled_description">Matching rules override the Wi-Fi DNS setting for all other identified networks.</string>
+    <string name="wifi_ssid_permission_title">Precise location required</string>
+    <string name="wifi_ssid_permission_description">Android treats Wi-Fi names (SSIDs), access-point identifiers (BSSIDs), and nearby Wi-Fi results as location-sensitive information. Precise location permission is required to read them. This feature does not read location coordinates.</string>
+    <string name="wifi_ssid_permission_docs_link">Android documentation for location-sensitive Wi-Fi information</string>
+    <string name="wifi_ssid_permission_docs_url" translatable="false">https://developer.android.com/develop/connectivity/wifi/wifi-scan#permissions</string>
+    <string name="wifi_ssid_permission_grant">Allow access</string>
+    <string name="wifi_location_services_title">Turn on location services</string>
+    <string name="wifi_location_services_description">The permission is granted, but Android also requires location services to be on before it reveals the connected SSID/BSSID and recent Wi-Fi results.</string>
+    <string name="wifi_location_services_open">Open location settings</string>
+    <string name="wifi_ssid_manual_entry_notice">You can enter a rule manually now, but automatic matching still needs this access. Private DNS remains unchanged while the current network identity is unavailable.</string>
+    <string name="wifi_ssid_permission_denied">Precise location permission is required to identify Wi-Fi networks. Private DNS remains unchanged until access is granted.</string>
+    <string name="wifi_location_services_disabled">Turn on Android location services so the connected Wi-Fi name can be identified. Private DNS remains unchanged while the network identity is unavailable.</string>
+    <string name="wifi_rules_require_background_detection">Wi-Fi network rules require background service detection. Disable the rules before selecting tile-only detection.</string>
+    <string name="wifi_rules_enabled_background_detection">Background service detection was enabled because per-network rules require it.</string>
+    <string name="wifi_ssid_label">Network name (SSID)</string>
+    <string name="wifi_rules_title">Network rules</string>
+    <string name="wifi_rules_empty">No network rules added.</string>
+    <string name="wifi_rule_add_current">Use currently connected network</string>
+    <string name="wifi_rule_choose_network">Choose nearby or recent network</string>
+    <string name="wifi_rule_add_manual">Enter SSID or BSSID manually</string>
+    <string name="wifi_network_picker_title">Choose Wi-Fi network</string>
+    <string name="wifi_network_current_title">Currently connected</string>
+    <string name="wifi_network_nearby_title">Nearby networks</string>
+    <string name="wifi_network_history_title">Recently seen networks</string>
+    <string name="wifi_network_scanning">Loading Android\'s latest available Wi-Fi results…</string>
+    <string name="wifi_network_none_found">No recent Wi-Fi results are available. This app does not start a new scan; Android may provide cached results.</string>
+    <string name="wifi_network_refresh">Reload results</string>
+    <string name="wifi_hidden_network">Hidden network</string>
+    <string name="wifi_rule_add_title">Add network rule</string>
+    <string name="wifi_rule_edit_title">Edit network rule</string>
+    <string name="wifi_bssid_label">Access point MAC (BSSID, optional)</string>
+    <string name="wifi_bssid_hint">Leave blank to match every access point with this SSID.</string>
+    <string name="wifi_rule_action_label">Action for this network</string>
+    <string name="wifi_rule_action_default">Use the default Wi-Fi DNS setting</string>
+    <string name="wifi_rule_invalid_or_duplicate">Enter a valid SSID or BSSID and make sure the same rule does not already exist.</string>
+    <string name="wifi_rule_delete_title">Delete network rule?</string>
+    <string name="wifi_rule_delete_message">Remove the rule for “%1$s”?</string>
+    <string name="wifi_rule_edit_description">Edit rule for %1$s</string>
+    <string name="wifi_rule_delete_description">Delete rule for %1$s</string>
+
+    <string name="dns_mode_off_label">Off</string>
+    <string name="dns_mode_auto_label">Auto</string>
+
+    <string name="network_type_info_title">Network Type Detection</string>
+    <string name="network_type_info_message">This feature automatically switches Private DNS settings based on whether you\'re connected to WiFi or mobile data. It also works while a VPN is active by detecting the underlying WiFi or mobile connection.\n\nVPN Priority: If VPN detection is enabled separately, it takes priority and DNS will be set to Off while the VPN is active.\n\nExample use case: If your home WiFi router uses NextDNS, set "DNS on WiFi" to Off. Set "DNS on Mobile Data" to Auto or a specific hostname for protection when on cellular networks.</string>
+
+    <!-- Network Monitoring Service -->
+    <string name="network_monitoring_channel_name">Network Type Monitoring</string>
+    <string name="network_monitoring_channel_description">Monitors network type changes to automatically adjust Private DNS settings</string>
+    <string name="network_monitoring_notification_title">Network Monitoring Active</string>
+    <string name="network_type_wifi">Connected to WiFi</string>
+    <string name="network_type_mobile">Connected to Mobile Data</string>
+    <string name="network_type_none">No network connection</string>
+    <string name="network_type_unknown">Unknown network type</string>
+
+    <!-- App Shortcuts -->
+    <string name="shortcut_dns_off_short">DNS Off</string>
+    <string name="shortcut_dns_off_long">Disable Private DNS</string>
+    <string name="shortcut_dns_auto_short">DNS Auto</string>
+    <string name="shortcut_dns_auto_long">Enable Private DNS (Auto)</string>
+    <string name="shortcut_dns_adguard_short">AdGuard DNS</string>
+    <string name="shortcut_dns_adguard_long">Enable AdGuard DNS</string>
+    <string name="shortcut_dns_cloudflare_short">Cloudflare DNS</string>
+    <string name="shortcut_dns_cloudflare_long">Enable Cloudflare DNS</string>
+    <string name="shortcut_dns_quad9_short">Quad9 DNS</string>
+    <string name="shortcut_dns_quad9_long">Enable Quad9 DNS</string>
+    <string name="shortcut_usb_on_short">USB Debug On</string>
+    <string name="shortcut_usb_on_long">Enable USB Debugging</string>
+    <string name="shortcut_usb_off_short">USB Debug Off</string>
+    <string name="shortcut_usb_off_long">Disable USB Debugging</string>
+    <string name="shortcut_dns_custom_long">Enable DNS: %1$s</string>
+    <string name="shortcut_toast_dns_off">Private DNS disabled</string>
+    <string name="shortcut_toast_dns_auto">Private DNS set to Auto</string>
+    <string name="shortcut_toast_dns_hostname">Private DNS set to %1$s</string>
+    <string name="shortcut_toast_usb_on">USB Debugging enabled</string>
+    <string name="shortcut_toast_usb_off">USB Debugging disabled</string>
+    <string name="shortcut_toast_permission_missing">Permission missing. Open the app to grant it.</string>
+    <string name="shortcut_toast_action_disabled">Shortcut action is disabled. Enable it in the app first.</string>
+    <string name="shortcut_toast_action_unavailable">Shortcut action is no longer available. Check the app configuration.</string>
+    <string name="shortcut_toast_action_failed">Could not apply the shortcut action.</string>
+
+    <!-- Shortcut Settings -->
+    <string name="shortcut_settings_title">Shortcut Actions</string>
+    <string name="shortcut_settings_description">Choose which actions are exposed as Android app shortcuts. They can be used from launchers, Samsung Routines, Tasker, or as pinned home screen shortcuts.\n\nAndroid limits the number of launcher-visible dynamic shortcuts for this app activity to %1$d, so only %1$d actions can be activated here at the same time.\n\nYou can mark up to %2$d active actions as favorites using the star icon. Favorites are published with highest priority and are more likely to appear first in launcher shortcut menus. Disabled actions cannot be favorited.\n\nBy default, disabled actions are fully blocked and can no longer be executed by the app. Enable the option below only if you want already pinned shortcuts to keep working after they are disabled here.</string>
+    <string name="shortcut_settings_limit">Active shortcuts: %1$d / %2$d</string>
+    <string name="shortcut_settings_limit_reached_title">Shortcut limit reached</string>
+    <string name="shortcut_settings_limit_reached">Shortcut limit reached. Disable another action first.</string>
+    <string name="shortcut_settings_favorite_limit_reached_title">Favorite limit reached</string>
+    <string name="shortcut_settings_favorite_limit_reached">You can mark up to 4 favorites.</string>
+    <string name="shortcut_settings_allow_pinned_when_disabled">Allow disabled pinned shortcuts</string>
+    <string name="shortcut_settings_allow_pinned_when_disabled_desc">If enabled, shortcuts that were already pinned or launched externally may still run even after you disable them here.</string>
+    <string name="shortcut_settings_allow_pinned_info_desc">Show details about disabled pinned shortcuts</string>
+    <string name="shortcut_settings_allow_pinned_warning_title">Allow disabled shortcuts?</string>
+    <string name="shortcut_settings_allow_pinned_warning_message">Enabling this weakens the default safety behavior. Disabled shortcut actions may still be executed when they are launched externally or from shortcuts that were already pinned before.\n\nThis is mainly useful if you want to keep using more actions than Android allows as simultaneously active shortcuts.</string>
+    <string name="shortcut_settings_allow_pinned_warning_confirm">Enable anyway</string>
+    <string name="shortcut_settings_mark_favorite_desc">Mark %1$s as favorite</string>
+    <string name="shortcut_settings_remove_favorite_desc">Remove %1$s from favorites</string>
+    <string name="shortcut_settings_open_desc">Open shortcut settings</string>
+    <!-- Quick Action Dialog -->
+    <string name="quick_action_title">Quick Actions</string>
+    <string name="quick_action_dns_title">Private DNS</string>
+    <string name="quick_action_usb_title">USB Debugging</string>
+    <string name="quick_action_no_actions">No actions are enabled for this tile.</string>
+    <string name="quick_action_open_app">Open app</string>
+    <string name="wifi_permission_open_settings">Open app settings</string>
+    <string name="wifi_permission_blocked_description">Android no longer shows the location permission dialog. Open app settings, choose Permissions → Location, and allow precise location access.</string>
+    <string name="wifi_boot_title">Continue automatically after a restart</string>
+    <string name="wifi_boot_description">To apply Wi-Fi rules after restarting and unlocking your phone, open app settings → Permissions → Location and select “Allow all the time”, with precise location enabled. This allows the app to identify Wi-Fi networks in the background; no location coordinates are read. This is optional: without it, open the app once after each restart.</string>
+    <string name="wifi_boot_ready">Wi-Fi rules resume automatically after restarting and unlocking your phone.</string>
+    <string name="wifi_rule_use_detected_bssid">Use detected BSSID: %1$s</string>
+</resources>

@@ -1,0 +1,722 @@
+package com.rbn.qtsettings.services
+
+import android.content.SharedPreferences
+import android.database.ContentObserver
+import android.graphics.drawable.Icon
+import android.net.ConnectivityManager
+import android.net.Uri
+import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
+import android.service.quicksettings.Tile
+import android.service.quicksettings.TileService
+import android.util.Log
+import android.widget.Toast
+import androidx.core.content.edit
+import com.rbn.qtsettings.R
+import com.rbn.qtsettings.data.DetectedNetworkState
+import com.rbn.qtsettings.data.PreferencesManager
+import com.rbn.qtsettings.utils.AutoRevertCoordinator
+import com.rbn.qtsettings.utils.Constants.BACKGROUND_DETECTION
+import com.rbn.qtsettings.utils.Constants.DNS_MODE_AUTO
+import com.rbn.qtsettings.utils.Constants.DNS_MODE_OFF
+import com.rbn.qtsettings.utils.Constants.DNS_MODE_ON
+import com.rbn.qtsettings.utils.Constants.PRIVATE_DNS_MODE
+import com.rbn.qtsettings.utils.Constants.PRIVATE_DNS_SPECIFIER
+import com.rbn.qtsettings.utils.Constants.TILE_ONLY_DETECTION
+import com.rbn.qtsettings.utils.NetworkDnsAutomation
+import com.rbn.qtsettings.utils.NetworkTypeDetectionUtils
+import com.rbn.qtsettings.utils.PermissionUtils
+import com.rbn.qtsettings.utils.VpnDetectionUtils
+
+class PrivateDnsTileService : TileService() {
+
+    private lateinit var prefsManager: PreferencesManager
+    private var revertTimer: CountDownTimer? = null
+    private val servicePrefs: SharedPreferences by lazy {
+        applicationContext.getSharedPreferences("dns_tile_service_state", MODE_PRIVATE)
+    }
+
+    private var isVpnConnected = false
+    private var vpnMonitorTimer: CountDownTimer? = null
+    private var currentNetworkState = DetectedNetworkState()
+    private var networkTypeCallback: ConnectivityManager.NetworkCallback? = null
+    private var networkTypeMonitorTimer: CountDownTimer? = null
+    private var monitorWifiSsid = false
+
+    private var dnsSettingsObserver: ContentObserver? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        prefsManager = PreferencesManager.getInstance(applicationContext)
+    }
+
+    override fun onStartListening() {
+        super.onStartListening()
+        initializeVpnState()
+        startVpnMonitoring()
+        initializeNetworkTypeState()
+        startNetworkTypeMonitoring()
+        startObservingDnsSettings()
+        updateTile()
+    }
+
+    private fun savePreviousState(mode: String, hostname: String?) {
+        servicePrefs.edit {
+            putString(PreferencesManager.KEY_DNS_PREVIOUS_MODE_FOR_REVERT, mode)
+                .putString(PreferencesManager.KEY_DNS_PREVIOUS_HOSTNAME_FOR_REVERT, hostname)
+        }
+    }
+
+    private fun getPreviousState(): Pair<String, String?>? {
+        val mode = servicePrefs.getString(PreferencesManager.KEY_DNS_PREVIOUS_MODE_FOR_REVERT, null)
+        return mode?.let {
+            Pair(
+                it,
+                servicePrefs.getString(
+                    PreferencesManager.KEY_DNS_PREVIOUS_HOSTNAME_FOR_REVERT,
+                    null
+                )
+            )
+        }
+    }
+
+    private fun clearPreviousState() {
+        servicePrefs.edit {
+            remove(PreferencesManager.KEY_DNS_PREVIOUS_MODE_FOR_REVERT)
+                .remove(PreferencesManager.KEY_DNS_PREVIOUS_HOSTNAME_FOR_REVERT)
+        }
+    }
+
+    private fun initializeVpnState() {
+        if (!prefsManager.isVpnDetectionEnabled()) {
+            clearVpnPreviousState()
+            isVpnConnected = false
+            return
+        }
+
+        val detectionMode = prefsManager.getVpnDetectionMode()
+        if (detectionMode != TILE_ONLY_DETECTION) {
+            isVpnConnected = VpnDetectionUtils.isVpnActive(this)
+            return
+        }
+
+        if (!PermissionUtils.hasWriteSecureSettingsPermission(this)) {
+            return
+        }
+
+        isVpnConnected = VpnDetectionUtils.isVpnActive(this)
+
+        if (isVpnConnected) {
+            val existingVpnState = getVpnPreviousState()
+            if (existingVpnState == null) {
+                val currentMode = VpnDetectionUtils.getCurrentPrivateDnsMode(this)
+                if (currentMode == DNS_MODE_OFF) {
+                    Log.w(
+                        "PrivateDnsTile",
+                        "VPN is active with DNS off, but no saved state found. Cannot restore original DNS settings."
+                    )
+                } else {
+                    onVpnConnected()
+                }
+            }
+        } else {
+            val existingVpnState = getVpnPreviousState()
+            if (existingVpnState != null) {
+                onVpnDisconnected()
+            }
+        }
+    }
+
+    private fun onVpnConnected() {
+        try {
+            val currentMode = VpnDetectionUtils.getCurrentPrivateDnsMode(this)
+            val currentHostname = VpnDetectionUtils.getCurrentPrivateDnsHostname(this)
+
+            if (currentMode != DNS_MODE_OFF) {
+                if (VpnDetectionUtils.setPrivateDnsOff(this)) {
+                    saveVpnPreviousState(currentMode, currentHostname)
+                    Log.i("PrivateDnsTile", "VPN detected: Set Private DNS to off")
+                } else {
+                    Log.w("PrivateDnsTile", "VPN detected: Failed to disable Private DNS")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PrivateDnsTile", "Error handling VPN connection", e)
+        }
+    }
+
+    private fun onVpnDisconnected() {
+        try {
+            val previousState = getVpnPreviousState()
+            if (previousState == null) {
+                applyCurrentNetworkPolicy()
+                return
+            }
+            val (previousMode, previousHostname) = previousState
+
+            val networkPolicyApplied = applyCurrentNetworkPolicy()
+            val restored = networkPolicyApplied ||
+                VpnDetectionUtils.restorePrivateDns(this, previousMode, previousHostname)
+            if (restored) {
+                clearVpnPreviousState()
+            }
+
+            Log.i(
+                "PrivateDnsTile",
+                if (networkPolicyApplied) {
+                    "VPN disconnected: Applied current network DNS policy"
+                } else if (restored) {
+                    "VPN disconnected: Restored Private DNS to $previousMode"
+                } else {
+                    "VPN disconnected: DNS restoration failed; keeping saved state"
+                }
+            )
+        } catch (e: Exception) {
+            Log.e("PrivateDnsTile", "Error handling VPN disconnection", e)
+        }
+    }
+
+    private fun applyCurrentNetworkPolicy(): Boolean {
+        if (!prefsManager.isNetworkTypeDetectionEnabled()) return false
+        val includeWifiIdentity =
+            prefsManager.getNetworkTypeDetectionMode() == BACKGROUND_DETECTION &&
+                prefsManager.areWifiNetworkRulesEnabled()
+        val detectedNetworkState = NetworkTypeDetectionUtils.getCurrentNetworkState(
+            context = this,
+            includeWifiSsid = includeWifiIdentity
+        )
+        return NetworkDnsAutomation.apply(this, prefsManager, detectedNetworkState)
+    }
+
+    private fun saveVpnPreviousState(mode: String, hostname: String?) {
+        val sharedVpnPrefs = applicationContext.getSharedPreferences(
+            "vpn_detection_shared_state",
+            MODE_PRIVATE
+        )
+        sharedVpnPrefs.edit {
+            putString("vpn_previous_dns_mode", mode)
+            putString("vpn_previous_dns_hostname", hostname)
+        }
+    }
+
+    private fun getVpnPreviousState(): Pair<String, String?>? {
+        val sharedVpnPrefs = applicationContext.getSharedPreferences(
+            "vpn_detection_shared_state",
+            MODE_PRIVATE
+        )
+        val mode = sharedVpnPrefs.getString("vpn_previous_dns_mode", null)
+        return mode?.let {
+            Pair(it, sharedVpnPrefs.getString("vpn_previous_dns_hostname", null))
+        }
+    }
+
+    private fun clearVpnPreviousState() {
+        val sharedVpnPrefs = applicationContext.getSharedPreferences(
+            "vpn_detection_shared_state",
+            MODE_PRIVATE
+        )
+        sharedVpnPrefs.edit {
+            remove("vpn_previous_dns_mode")
+            remove("vpn_previous_dns_hostname")
+        }
+    }
+
+    private fun startVpnMonitoring() {
+        if (!prefsManager.isVpnDetectionEnabled() || prefsManager.getVpnDetectionMode() != TILE_ONLY_DETECTION) {
+            return
+        }
+
+        if (!PermissionUtils.hasWriteSecureSettingsPermission(this)) {
+            return
+        }
+
+        vpnMonitorTimer?.cancel()
+        vpnMonitorTimer = object : CountDownTimer(Long.MAX_VALUE, 2000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val currentVpnState = VpnDetectionUtils.isVpnActive(this@PrivateDnsTileService)
+
+                if (currentVpnState != isVpnConnected) {
+                    if (currentVpnState) {
+                        onVpnConnected()
+                    } else {
+                        onVpnDisconnected()
+                    }
+                    isVpnConnected = currentVpnState
+                    updateTile()
+                }
+            }
+
+            override fun onFinish() {
+            }
+        }.start()
+    }
+
+    private fun stopVpnMonitoring() {
+        vpnMonitorTimer?.cancel()
+        vpnMonitorTimer = null
+    }
+
+    private fun startObservingDnsSettings() {
+        val isBackgroundMode =
+            (prefsManager.isVpnDetectionEnabled() &&
+                    prefsManager.getVpnDetectionMode() == BACKGROUND_DETECTION) ||
+                    (prefsManager.isNetworkTypeDetectionEnabled() &&
+                            prefsManager.getNetworkTypeDetectionMode() == BACKGROUND_DETECTION)
+
+        if (isBackgroundMode) {
+            stopObservingDnsSettings()
+
+            dnsSettingsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                override fun onChange(selfChange: Boolean, uri: Uri?) {
+                    super.onChange(selfChange, uri)
+                    updateTile()
+                }
+            }
+
+            val dnsModUri = Settings.Global.getUriFor(PRIVATE_DNS_MODE)
+            val dnsSpecifierUri = Settings.Global.getUriFor(PRIVATE_DNS_SPECIFIER)
+
+            contentResolver.registerContentObserver(dnsModUri, false, dnsSettingsObserver!!)
+            contentResolver.registerContentObserver(dnsSpecifierUri, false, dnsSettingsObserver!!)
+        }
+    }
+
+    private fun stopObservingDnsSettings() {
+        dnsSettingsObserver?.let { observer ->
+            contentResolver.unregisterContentObserver(observer)
+            dnsSettingsObserver = null
+        }
+    }
+
+    override fun onClick() {
+        super.onClick()
+        cancelRevertTimerWithMessage(getString(R.string.toast_revert_cancelled))
+
+        if (!PermissionUtils.hasWriteSecureSettingsPermission(this)) {
+            Toast.makeText(this, R.string.toast_permission_not_granted_adb, Toast.LENGTH_LONG)
+                .show()
+            Log.w("PrivateDnsTile", "WRITE_SECURE_SETTINGS permission not granted.")
+            return
+        }
+
+        if (prefsManager.isDnsRequireUnlockEnabled() && isLocked) {
+            unlockAndRun { performDnsToggle() }
+            return
+        }
+
+        performDnsToggle()
+    }
+
+    private fun performDnsToggle() {
+        val currentMode = Settings.Global.getString(contentResolver, PRIVATE_DNS_MODE)
+            ?: DNS_MODE_OFF
+        val currentHost =
+            Settings.Global.getString(contentResolver, PRIVATE_DNS_SPECIFIER)
+
+        qsTile?.let { tile ->
+            tile.subtitle = getString(R.string.tile_subtitle_switching)
+            tile.updateTile()
+        }
+
+        savePreviousState(currentMode, currentHost)
+
+        val nextState = DnsCyclePolicy.nextState(
+            currentMode = currentMode,
+            currentHostname = currentHost,
+            includeOff = prefsManager.isDnsToggleOffEnabled(),
+            includeAuto = prefsManager.isDnsToggleAutoEnabled(),
+            hostnames = prefsManager.getDnsHostnamesSelectedForCycle()
+        )
+        if (nextState == null) {
+            Toast.makeText(this, R.string.toast_no_states_enabled_dns, Toast.LENGTH_SHORT).show()
+            clearPreviousState()
+            return
+        }
+        val (nextMode, nextHostToSet) = nextState
+
+        try {
+            Settings.Global.putString(contentResolver, PRIVATE_DNS_MODE, nextMode)
+            if (nextMode == DNS_MODE_ON) {
+                if (nextHostToSet.isNullOrBlank()) {
+                    Toast.makeText(this, R.string.toast_hostname_required, Toast.LENGTH_LONG).show()
+                    getPreviousState()?.let { (prevMode, prevHost) ->
+                        Settings.Global.putString(
+                            contentResolver,
+                            PRIVATE_DNS_MODE,
+                            prevMode
+                        )
+                        if (prevMode == DNS_MODE_ON && prevHost != null) {
+                            Settings.Global.putString(
+                                contentResolver,
+                                PRIVATE_DNS_SPECIFIER,
+                                prevHost
+                            )
+                        }
+                    } ?: Settings.Global.putString(
+                        contentResolver,
+                        PRIVATE_DNS_MODE,
+                        DNS_MODE_OFF
+                    )
+                    clearPreviousState()
+                    updateTile()
+                    return
+                }
+                Settings.Global.putString(
+                    contentResolver,
+                    PRIVATE_DNS_SPECIFIER,
+                    nextHostToSet
+                )
+            }
+
+            if (prefsManager.isDnsAutoRevertEnabled()) {
+                val delaySeconds = prefsManager.getDnsAutoRevertDelaySeconds()
+                if (delaySeconds > 0) {
+                    startRevertTimer(delaySeconds)
+                    val prevModeForToast = getPreviousState()?.first ?: currentMode
+                    val prevHostForToast = getPreviousState()?.second
+                    val toastMsg = getString(
+                        R.string.toast_reverting_dns_to,
+                        getReadableDnsMode(prevModeForToast, prevHostForToast),
+                        delaySeconds
+                    )
+                    Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show()
+                } else {
+                    clearPreviousState()
+                }
+            } else {
+                clearPreviousState()
+            }
+
+        } catch (e: Exception) {
+            Log.e("PrivateDnsTile", "Error setting DNS: ${e.message}", e)
+            Toast.makeText(this, R.string.toast_error_saving_settings, Toast.LENGTH_SHORT).show()
+            clearPreviousState()
+        }
+        updateTile()
+    }
+
+    private fun startRevertTimer(delaySeconds: Int) {
+        revertTimer?.cancel()
+        val autoRevertGeneration = AutoRevertCoordinator.dnsGeneration(this)
+        revertTimer = object : CountDownTimer(delaySeconds * 1000L, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                if (AutoRevertCoordinator.dnsGeneration(this@PrivateDnsTileService) !=
+                    autoRevertGeneration
+                ) {
+                    cancelRevertTimerWithMessage(null)
+                    return
+                }
+                qsTile?.let { tile ->
+                    getPreviousState()?.let { (prevMode, prevHost) ->
+                        val readablePrevMode = getReadableDnsMode(prevMode, prevHost)
+                        tile.subtitle = getString(
+                            R.string.tile_subtitle_reverting_in_seconds,
+                            readablePrevMode,
+                            millisUntilFinished / 1000
+                        )
+                        tile.updateTile()
+                    }
+                }
+            }
+
+            override fun onFinish() {
+                if (AutoRevertCoordinator.dnsGeneration(this@PrivateDnsTileService) !=
+                    autoRevertGeneration
+                ) {
+                    clearPreviousState()
+                    revertTimer = null
+                    updateTile()
+                    return
+                }
+                getPreviousState()?.let { (prevMode, prevHost) ->
+                    try {
+                        Settings.Global.putString(
+                            contentResolver,
+                            PRIVATE_DNS_MODE,
+                            prevMode
+                        )
+                        if (prevMode == DNS_MODE_ON && prevHost != null) {
+                            Settings.Global.putString(
+                                contentResolver,
+                                PRIVATE_DNS_SPECIFIER,
+                                prevHost
+                            )
+                        }
+                        Log.i("PrivateDnsTile", "Auto-reverted DNS to $prevMode")
+                        Toast.makeText(
+                            applicationContext,
+                            getString(
+                                R.string.dns_state_reverted_to,
+                                getReadableDnsMode(prevMode, prevHost)
+                            ),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } catch (e: Exception) {
+                        Log.e("PrivateDnsTile", "Error auto-reverting DNS: ${e.message}", e)
+                    } finally {
+                        clearPreviousState()
+                        revertTimer = null
+                        updateTile()
+                    }
+                }
+            }
+        }.start()
+    }
+
+    private fun cancelRevertTimerWithMessage(message: String?) {
+        if (revertTimer != null) {
+            revertTimer?.cancel()
+            revertTimer = null
+            clearPreviousState()
+            if (message != null) {
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+            }
+            Log.i("PrivateDnsTile", "Revert timer cancelled.")
+            updateTile()
+        }
+    }
+
+    private fun getReadableDnsMode(mode: String, hostname: String? = null): String {
+        return when (mode) {
+            DNS_MODE_OFF -> getString(R.string.off_state)
+            DNS_MODE_AUTO -> getString(R.string.auto_state)
+            DNS_MODE_ON -> {
+                if (hostname != null) {
+                    val entry =
+                        prefsManager.getAllDnsHostnamesBlocking().find { it.hostname == hostname }
+                    entry?.name ?: hostname
+                } else {
+                    getString(R.string.on_state)
+                }
+            }
+
+            else -> mode
+        }
+    }
+
+    private fun getDnsIcon(hostname: String?): Int {
+        return when (hostname) {
+            "dns.adguard.com" -> R.drawable.ic_dns_on_adguard
+            "one.one.one.one" -> R.drawable.ic_dns_on_cloudflare
+            "dns.quad9.net" -> R.drawable.ic_dns_on_quad9_security
+            else -> R.drawable.ic_dns_on
+        }
+    }
+
+    private fun updateTile() {
+        val tile = qsTile ?: return
+
+        if (revertTimer == null || getPreviousState() == null) {
+            tile.subtitle = ""
+        }
+
+        val dnsMode = Settings.Global.getString(contentResolver, PRIVATE_DNS_MODE)
+
+        when (dnsMode) {
+            DNS_MODE_OFF -> {
+                tile.state = Tile.STATE_INACTIVE
+                tile.label = getString(R.string.dns_state_off)
+                tile.icon = Icon.createWithResource(this, R.drawable.ic_dns_off)
+            }
+
+            DNS_MODE_AUTO -> {
+                tile.state = Tile.STATE_ACTIVE
+                tile.label = getString(R.string.dns_state_auto)
+                tile.icon = Icon.createWithResource(this, R.drawable.ic_dns_auto)
+            }
+
+            DNS_MODE_ON -> {
+                tile.state = Tile.STATE_ACTIVE
+                val currentActualHostname =
+                    Settings.Global.getString(contentResolver, PRIVATE_DNS_SPECIFIER)
+
+                if (currentActualHostname.isNullOrBlank() && PermissionUtils.hasWriteSecureSettingsPermission(
+                        this
+                    )
+                ) {
+                    tile.label =
+                        getString(R.string.dns_state_on_with_host)
+                } else if (!currentActualHostname.isNullOrBlank()) {
+                    val entry = prefsManager.getAllDnsHostnamesBlocking()
+                        .find { it.hostname == currentActualHostname }
+                    val displayName = entry?.name ?: currentActualHostname
+                    tile.label =
+                        if (displayName.length > 15) displayName.take(12) + "..." else displayName
+                } else {
+                    tile.label = getString(R.string.dns_state_on_with_host)
+                }
+                tile.icon = Icon.createWithResource(this, getDnsIcon(currentActualHostname))
+                if (currentActualHostname.isNullOrBlank() && PermissionUtils.hasWriteSecureSettingsPermission(
+                        this
+                    )
+                ) {
+                    getPreviousState()?.let { (prevMode, prevHost) ->
+                        if (prevMode != DNS_MODE_ON || !prevHost.isNullOrBlank()) {
+                            Settings.Global.putString(
+                                contentResolver,
+                                PRIVATE_DNS_MODE,
+                                prevMode
+                            )
+                            if (prevHost != null && prevMode == DNS_MODE_ON) {
+                                Settings.Global.putString(
+                                    contentResolver,
+                                    PRIVATE_DNS_SPECIFIER,
+                                    prevHost
+                                )
+                            }
+                            clearPreviousState()
+                            updateTile()
+                            return
+                        }
+                    }
+                    if (prefsManager.isDnsToggleOffEnabled()) {
+                        Settings.Global.putString(
+                            contentResolver,
+                            PRIVATE_DNS_MODE,
+                            DNS_MODE_OFF
+                        )
+                        updateTile()
+                        return
+                    } else if (prefsManager.isDnsToggleAutoEnabled()) {
+                        Settings.Global.putString(
+                            contentResolver,
+                            PRIVATE_DNS_MODE,
+                            DNS_MODE_AUTO
+                        )
+                        updateTile()
+                        return
+                    }
+                }
+            }
+
+            else -> {
+                tile.state = Tile.STATE_INACTIVE
+                tile.label = getString(R.string.dns_state_unknown)
+                tile.icon = Icon.createWithResource(this, R.drawable.ic_dns_off)
+            }
+        }
+        tile.updateTile()
+    }
+
+    override fun onStopListening() {
+        super.onStopListening()
+        stopVpnMonitoring()
+        stopNetworkTypeMonitoring()
+        stopObservingDnsSettings()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        revertTimer?.cancel()
+        revertTimer = null
+        stopVpnMonitoring()
+        stopNetworkTypeMonitoring()
+        stopObservingDnsSettings()
+    }
+
+    private fun initializeNetworkTypeState() {
+        if (!prefsManager.isNetworkTypeDetectionEnabled()) {
+            currentNetworkState = DetectedNetworkState()
+            return
+        }
+
+        val detectionMode = prefsManager.getNetworkTypeDetectionMode()
+        if (detectionMode != TILE_ONLY_DETECTION) {
+            return
+        }
+
+        if (!PermissionUtils.hasWriteSecureSettingsPermission(this)) {
+            return
+        }
+
+        monitorWifiSsid = false
+        val detectedState = NetworkTypeDetectionUtils.getCurrentNetworkState(
+            context = this,
+            includeWifiSsid = monitorWifiSsid
+        )
+        applyNetworkStateIfChanged(detectedState, force = true)
+    }
+
+    private fun startNetworkTypeMonitoring() {
+        if (!prefsManager.isNetworkTypeDetectionEnabled() ||
+            prefsManager.getNetworkTypeDetectionMode() != TILE_ONLY_DETECTION
+        ) {
+            return
+        }
+
+        if (!PermissionUtils.hasWriteSecureSettingsPermission(this)) {
+            return
+        }
+
+        stopNetworkTypeMonitoring()
+        monitorWifiSsid = false
+        val mainHandler = Handler(Looper.getMainLooper())
+        networkTypeCallback = NetworkTypeDetectionUtils.createNetworkStateCallback(
+            context = this,
+            includeWifiSsid = monitorWifiSsid,
+            onNetworkStateChanged = { detectedNetworkState ->
+                mainHandler.post {
+                    applyNetworkStateIfChanged(detectedNetworkState)
+                }
+            }
+        )
+
+        networkTypeCallback?.let { callback ->
+            NetworkTypeDetectionUtils.registerNetworkTypeCallback(this, callback)
+        }
+
+        networkTypeMonitorTimer =
+            object : CountDownTimer(Long.MAX_VALUE, 2000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    applyNetworkStateIfChanged(
+                        NetworkTypeDetectionUtils.getCurrentNetworkState(
+                            context = this@PrivateDnsTileService,
+                            includeWifiSsid = monitorWifiSsid
+                        )
+                    )
+                }
+
+                override fun onFinish() {
+                }
+            }.start()
+    }
+
+    private fun stopNetworkTypeMonitoring() {
+        networkTypeCallback?.let { callback ->
+            NetworkTypeDetectionUtils.unregisterNetworkTypeCallback(this, callback)
+        }
+        networkTypeCallback = null
+        networkTypeMonitorTimer?.cancel()
+        networkTypeMonitorTimer = null
+    }
+
+    private fun applyNetworkStateIfChanged(
+        detectedNetworkState: DetectedNetworkState,
+        force: Boolean = false
+    ) {
+        if (!force && detectedNetworkState == currentNetworkState) return
+        currentNetworkState = detectedNetworkState
+        handleNetworkStateChange(detectedNetworkState)
+        updateTile()
+    }
+
+    private fun handleNetworkStateChange(newNetworkState: DetectedNetworkState) {
+        Log.i(
+            "PrivateDnsTile",
+            "Network state changed to ${newNetworkState.networkType}; Wi-Fi identity available=" +
+                    (newNetworkState.wifiSsid != null)
+        )
+
+        if (prefsManager.isVpnDetectionEnabled() && VpnDetectionUtils.isVpnActive(this)) {
+            Log.d(
+                "PrivateDnsTile",
+                "VPN is active and VPN detection is enabled, skipping network type DNS change"
+            )
+            return
+        }
+
+        NetworkDnsAutomation.apply(this, prefsManager, newNetworkState)
+    }
+}
